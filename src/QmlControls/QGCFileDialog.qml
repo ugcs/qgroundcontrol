@@ -22,10 +22,7 @@ Item {
     signal acceptedForLoad(string file)
     signal acceptedForSave(string file)
     signal rejected
-    // Emitted on a successful import so the open dialog can refresh its list.
-    // Using a signal (rather than a property counter + binding) is the reliable
-    // QML pattern for communicating from a parent to a dynamically-created child.
-    signal fileImportedNotify
+    signal fileImportedNotify           // Emitted on a successful import so the open dialog can refresh its list.
 
     function openForLoad() {
         _openForLoad = true
@@ -58,7 +55,6 @@ Item {
     property bool   _mobileDlg:     QGroundControl.corePlugin.options.useMobileFileDialog
     property var    _rgExtensions
     property string _mobileShortPath
-    // Prevents other QGCFileDialog instances from reacting to the same signal.
     property bool   _importPending: false
 
     Component.onCompleted: {
@@ -95,7 +91,6 @@ Item {
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
-    // Connect to the controller to receive import result notifications on Android.
     Connections {
         target: QGCFileDialogController
         enabled: Qt.platform.os === "android" && _root._importPending
@@ -152,7 +147,6 @@ Item {
             title:      _root.title
             buttons:    Dialog.Cancel
 
-            // Auto-refresh the file list immediately after a successful import.
             Connections {
                 target: _root
                 function onFileImportedNotify() {
