@@ -45,14 +45,14 @@ public:
 signals:
     /// Emitted when the selected file has been successfully imported to the Missions directory.
     /// @param filePath Fully-qualified path of the imported file in the Missions directory.
-    void fileImported(const QString &filePath);
+    void fileImported(const QString& filePath);
 
     /// Emitted when the import operation fails.
     /// @param errorMessage Human-readable description of the error.
-    void importFailed(const QString &errorMessage);
+    void importFailed(const QString& errorMessage);
 
 private:
 #ifdef Q_OS_ANDROID
-    void _handleImportResult(const QString &filePath);
+    void _handleImportResult(const QString& filePath);
 #endif
 };

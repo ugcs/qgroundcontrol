@@ -6,8 +6,8 @@
 #include <QtCore/QDir>
 
 #ifdef Q_OS_ANDROID
-#include "AndroidInterface.h"
 #include <QtCore/QPointer>
+#include "AndroidInterface.h"
 #endif
 
 QGC_LOGGING_CATEGORY(QGCFileDialogControllerLog, "QMLControls.QGCFileDialogController")
@@ -126,7 +126,7 @@ void QGCFileDialogController::importFromNativePicker()
     }
 
     QPointer<QGCFileDialogController> self = this;
-    AndroidInterface::openFileImportDialog(missionPath, [self](const QString &filePath) {
+    AndroidInterface::openFileImportDialog(missionPath, [self](const QString& filePath) {
         if (self) {
             QMetaObject::invokeMethod(
                 self,
@@ -141,7 +141,7 @@ void QGCFileDialogController::importFromNativePicker()
 
 #ifdef Q_OS_ANDROID
 
-void QGCFileDialogController::_handleImportResult(const QString &filePath)
+void QGCFileDialogController::_handleImportResult(const QString& filePath)
 {
     if (filePath.isEmpty()) {
         qCWarning(QGCFileDialogControllerLog) << "Import failed: empty file path received from Java";

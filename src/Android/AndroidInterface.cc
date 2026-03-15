@@ -24,7 +24,7 @@ namespace AndroidInterface {
 
 // Callback registered by openFileImportDialog, invoked on the Qt main thread
 // when the Java side finishes copying the selected file.
-static std::function<void(const QString &)> s_importCallback;
+static std::function<void(const QString&)> s_importCallback;
 
 static void jniLogDebug(JNIEnv*, jobject, jstring message)
 {
@@ -93,7 +93,7 @@ static void jniOnImportResult(JNIEnv* env, jobject, jstring filePathA)
     const char* const filePathCStr = env->GetStringUTFChars(filePathA, nullptr);
     const QString filePath = QString::fromUtf8(filePathCStr);
     env->ReleaseStringUTFChars(filePathA, filePathCStr);
-    (void) QJniEnvironment::checkAndClearExceptions(env);
+    (void)QJniEnvironment::checkAndClearExceptions(env);
 
     // Move the callback out so it is invoked at most once even if this JNI
     // function is called more than once for the same request.
@@ -164,7 +164,7 @@ QString getSDCardPath()
     return result.toString();
 }
 
-void openFileImportDialog(const QString &destPath, std::function<void(const QString &)> callback)
+void openFileImportDialog(const QString& destPath, std::function<void(const QString&)> callback)
 {
     s_importCallback = std::move(callback);
 

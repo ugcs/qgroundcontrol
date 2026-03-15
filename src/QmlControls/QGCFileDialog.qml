@@ -22,6 +22,10 @@ Item {
     signal acceptedForLoad(string file)
     signal acceptedForSave(string file)
     signal rejected
+    // Emitted on a successful import so the open dialog can refresh its list.
+    // Using a signal (rather than a property counter + binding) is the reliable
+    // QML pattern for communicating from a parent to a dynamically-created child.
+    signal fileImportedNotify
 
     function openForLoad() {
         _openForLoad = true
@@ -54,14 +58,8 @@ Item {
     property bool   _mobileDlg:     QGroundControl.corePlugin.options.useMobileFileDialog
     property var    _rgExtensions
     property string _mobileShortPath
-
-    // Emitted on a successful import so the open dialog can refresh its list.
-    // Using a signal (rather than a property counter + binding) is the reliable
-    // QML pattern for communicating from a parent to a dynamically-created child.
-    signal fileImportedNotify
-
     // Prevents other QGCFileDialog instances from reacting to the same signal.
-    property bool _importPending: false
+    property bool   _importPending: false
 
     Component.onCompleted: {
         _setupFileExtensions()

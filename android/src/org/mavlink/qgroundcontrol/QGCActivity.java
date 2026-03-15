@@ -70,6 +70,25 @@ public class QGCActivity extends QtActivity {
         super.onDestroy();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == IMPORT_FILE_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                final Uri uri = data.getData();
+                if (uri != null) {
+                    final String importedPath = copyFileToDestination(uri, s_importDestPath);
+                    onImportResult(importedPath != null ? importedPath : "");
+                } else {
+                    Log.w(TAG, "onActivityResult: null URI for file import");
+                    onImportResult("");
+                }
+            }
+            // User cancelled — do not call back so the QML side takes no action.
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
     /**
      * Sets up a multicast lock to allow multicast packets.
      */
@@ -98,6 +117,63 @@ public class QGCActivity extends QtActivity {
         if (m_wifiMulticastLock != null && m_wifiMulticastLock.isHeld()) {
             m_wifiMulticastLock.release();
             QGCLogger.d(TAG, "Multicast lock released.");
+        }
+    }
+
+    /**
+     * Copies a file identified by a content URI to the specified destination directory.
+     *
+     * @param uri     Content URI of the source file returned by ACTION_OPEN_DOCUMENT.
+     * @param destDir Fully-qualified path of the destination directory.
+     * @return Fully-qualified path of the copied file, or null on failure.
+     */
+    private String copyFileToDestination(final Uri uri, final String destDir) {
+        String displayName = "";
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                final int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    displayName = cursor.getString(nameIndex);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to query display name for URI: " + uri, e);
+        }
+
+        if (displayName.isEmpty()) {
+            Log.e(TAG, "copyFileToDestination: can't get exact file name");
+            return null;
+        }
+
+        if (destDir == null || destDir.isEmpty()) {
+            Log.e(TAG, "copyFileToDestination: destination directory is empty");
+            return null;
+        }
+
+        if (!displayName.toLowerCase(java.util.Locale.ROOT).endsWith(".plan")) {
+            Log.w(TAG, "Rejected non-.plan file: " + displayName);
+            return null;
+        }
+
+        final File destDirectory = new File(destDir);
+        if (!destDirectory.exists()) {
+            Log.e(TAG, "Destination directory does not exists: " + destDir);
+            return null;
+        }
+
+        final File destFile = new File(destDirectory, displayName);
+        try (InputStream is = getContentResolver().openInputStream(uri);
+             FileOutputStream fos = new FileOutputStream(destFile)) {
+            final byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+            Log.i(TAG, "File imported successfully to: " + destFile.getAbsolutePath());
+            return destFile.getAbsolutePath();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to copy file to destination", e);
+            return null;
         }
     }
 
@@ -130,6 +206,24 @@ public class QGCActivity extends QtActivity {
             activity.m_storagePermissionController = new QGCStoragePermissionController(activity);
         }
         return activity.m_storagePermissionController.checkStoragePermissions();
+    }
+
+    /**
+     * Opens Android's native file picker using ACTION_OPEN_DOCUMENT.
+     * The selected file will be copied to the provided destination directory.
+     *
+     * @param destPath Fully-qualified path of the destination Missions directory.
+     */
+    public static void openFileImportDialog(final String destPath) {
+        if (m_instance == null) {
+            Log.e(TAG, "Activity instance is null");
+            return;
+        }
+        s_importDestPath = (destPath != null) ? destPath : "";
+        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        m_instance.startActivityForResult(intent, IMPORT_FILE_REQUEST_CODE);
     }
 
     @Override
@@ -165,114 +259,5 @@ public class QGCActivity extends QtActivity {
     public native void qgcLogDebug(final String message);
     public native void qgcLogWarning(final String message);
     public native void nativeStoragePermissionsResult(boolean granted);
-
     public native void onImportResult(final String filePath);
-
-   /**
-    * Opens Android's native file picker using ACTION_OPEN_DOCUMENT.
-    * The selected file will be copied to the provided destination directory.
-    *
-    * @param destPath Fully-qualified path of the destination Missions directory.
-    */
-   public static void openFileImportDialog(final String destPath) {
-       if (m_instance == null) {
-           Log.e(TAG, "Activity instance is null");
-           return;
-       }
-       s_importDestPath = (destPath != null) ? destPath : "";
-       final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-       intent.addCategory(Intent.CATEGORY_OPENABLE);
-       intent.setType("*/*");
-       m_instance.startActivityForResult(intent, IMPORT_FILE_REQUEST_CODE);
-   }
-
-   @Override
-   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-       if (requestCode == IMPORT_FILE_REQUEST_CODE) {
-           if (resultCode == Activity.RESULT_OK && data != null) {
-               final Uri uri = data.getData();
-               if (uri != null) {
-                   final String importedPath = copyFileToDestination(uri, s_importDestPath);
-                   onImportResult(importedPath != null ? importedPath : "");
-               } else {
-                   Log.w(TAG, "onActivityResult: null URI for file import");
-                   onImportResult("");
-               }
-           }
-           // User cancelled — do not call back so the QML side takes no action.
-           return;
-       }
-       super.onActivityResult(requestCode, resultCode, data);
-   }
-
-   /**
-    * Copies a file identified by a content URI to the specified destination directory.
-    *
-    * @param uri     Content URI of the source file returned by ACTION_OPEN_DOCUMENT.
-    * @param destDir Fully-qualified path of the destination directory.
-    * @return Fully-qualified path of the copied file, or null on failure.
-    */
-   private String copyFileToDestination(final Uri uri, final String destDir) {
-       String displayName = "";
-       try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
-           if (cursor != null && cursor.moveToFirst()) {
-               final int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-               if (nameIndex >= 0) {
-                   displayName = cursor.getString(nameIndex);
-               }
-           }
-       } catch (Exception e) {
-           Log.e(TAG, "Failed to query display name for URI: " + uri, e);
-       }
-
-       if (displayName.isEmpty()) {
-           // Fallback: try to extract a usable filename from the last path segment of the URI.
-           // For content URIs, getLastPathSegment() may return something like
-           // "primary:Download/mission.plan" — extract only the portion after the last '/'.
-           final String lastSegment = uri.getLastPathSegment();
-           if (lastSegment != null && !lastSegment.isEmpty()) {
-               final int lastSlash = lastSegment.lastIndexOf('/');
-               displayName = (lastSlash >= 0) ? lastSegment.substring(lastSlash + 1) : lastSegment;
-               // Remove any leading "primary:" or similar scheme prefix.
-               final int colonIdx = displayName.indexOf(':');
-               if (colonIdx >= 0 && colonIdx < displayName.length() - 1) {
-                   displayName = displayName.substring(colonIdx + 1);
-               }
-           }
-           if (displayName.isEmpty()) {
-               displayName = "imported_file";
-           }
-       }
-
-       if (destDir == null || destDir.isEmpty()) {
-           Log.e(TAG, "copyFileToDestination: destination directory is empty");
-           return null;
-       }
-
-       if (!displayName.toLowerCase(java.util.Locale.ROOT).endsWith(".plan")) {
-           Log.w(TAG, "Rejected non-.plan file: " + displayName);
-           return null;
-       }
-
-       final File destDirectory = new File(destDir);
-       if (!destDirectory.exists() && !destDirectory.mkdirs()) {
-           Log.e(TAG, "Failed to create destination directory: " + destDir);
-           return null;
-       }
-
-       final File destFile = new File(destDirectory, displayName);
-       try (InputStream is = getContentResolver().openInputStream(uri);
-            FileOutputStream fos = new FileOutputStream(destFile)) {
-           final byte[] buffer = new byte[8192];
-           int bytesRead;
-           while ((bytesRead = is.read(buffer)) != -1) {
-               fos.write(buffer, 0, bytesRead);
-           }
-           Log.i(TAG, "File imported successfully to: " + destFile.getAbsolutePath());
-           return destFile.getAbsolutePath();
-       } catch (Exception e) {
-           Log.e(TAG, "Failed to copy file to destination", e);
-           return null;
-       }
-   }
 }

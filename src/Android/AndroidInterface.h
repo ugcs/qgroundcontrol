@@ -4,6 +4,8 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QString>
 
+#include <functional>
+
 Q_DECLARE_LOGGING_CATEGORY(AndroidInterfaceLog)
 
 namespace AndroidInterface {
@@ -16,7 +18,7 @@ void setKeepScreenOn(bool on);
 /// The selected file is copied to destPath by the Java side.
 /// On completion, callback is invoked on the Qt main thread with the
 /// fully-qualified path of the copied file, or an empty string on failure.
-void openFileImportDialog(const QString &destPath, std::function<void(const QString &)> callback);
+void openFileImportDialog(const QString& destPath, std::function<void(const QString&)> callback);
 
 constexpr const char* kJniQGCActivityClassName = "org/mavlink/qgroundcontrol/QGCActivity";
 
