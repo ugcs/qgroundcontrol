@@ -22,6 +22,10 @@ QGC_LOGGING_CATEGORY(AndroidInterfaceLog, "Android.AndroidInterface")
 
 namespace AndroidInterface {
 
+// Callback registered by openFileImportDialog, invoked on the Qt main thread
+// when the Java side finishes copying the selected file.
+static std::function<void(const QString &)> s_importCallback;
+
 static void jniLogDebug(JNIEnv*, jobject, jstring message)
 {
     qCDebug(AndroidInterfaceLog) << QJniObject(message).toString();
@@ -84,6 +88,23 @@ static void jniStoragePermissionsResult(JNIEnv*, jobject, jboolean granted)
         Qt::QueuedConnection);
 }
 
+static void jniOnImportResult(JNIEnv* env, jobject, jstring filePathA)
+{
+    const char* const filePathCStr = env->GetStringUTFChars(filePathA, nullptr);
+    const QString filePath = QString::fromUtf8(filePathCStr);
+    env->ReleaseStringUTFChars(filePathA, filePathCStr);
+    (void) QJniEnvironment::checkAndClearExceptions(env);
+
+    // Move the callback out so it is invoked at most once even if this JNI
+    // function is called more than once for the same request.
+    auto callback = std::move(s_importCallback);
+    if (!callback) {
+        return;
+    }
+
+    callback(filePath);
+}
+
 void setNativeMethods()
 {
     qCDebug(AndroidInterfaceLog) << "Registering Native Functions";
@@ -91,7 +112,8 @@ void setNativeMethods()
     const JNINativeMethod javaMethods[]{
         {"qgcLogDebug", "(Ljava/lang/String;)V", reinterpret_cast<void*>(jniLogDebug)},
         {"qgcLogWarning", "(Ljava/lang/String;)V", reinterpret_cast<void*>(jniLogWarning)},
-        {"nativeStoragePermissionsResult", "(Z)V", reinterpret_cast<void*>(jniStoragePermissionsResult)}};
+        {"nativeStoragePermissionsResult", "(Z)V", reinterpret_cast<void*>(jniStoragePermissionsResult)},
+        {"onImportResult", "(Ljava/lang/String;)V", reinterpret_cast<void*>(jniOnImportResult)}};
 
     QJniEnvironment env;
     if (!env.registerNativeMethods(kJniQGCActivityClassName, javaMethods, std::size(javaMethods))) {
@@ -140,6 +162,23 @@ QString getSDCardPath()
     }
 
     return result.toString();
+}
+
+void openFileImportDialog(const QString &destPath, std::function<void(const QString &)> callback)
+{
+    s_importCallback = std::move(callback);
+
+    const QJniObject jDestPath = QJniObject::fromString(destPath);
+    QJniObject::callStaticMethod<void>(
+        kJniQGCActivityClassName,
+        "openFileImportDialog",
+        "(Ljava/lang/String;)V",
+        jDestPath.object<jstring>());
+
+    QJniEnvironment env;
+    if (env.checkAndClearExceptions()) {
+        qCWarning(AndroidInterfaceLog) << "Exception in openFileImportDialog";
+    }
 }
 
 static QSharedPointer<QLocks::QLockBase> s_partialWakeLock;

@@ -55,6 +55,14 @@ Item {
     property var    _rgExtensions
     property string _mobileShortPath
 
+    // Emitted on a successful import so the open dialog can refresh its list.
+    // Using a signal (rather than a property counter + binding) is the reliable
+    // QML pattern for communicating from a parent to a dynamically-created child.
+    signal fileImportedNotify
+
+    // Prevents other QGCFileDialog instances from reacting to the same signal.
+    property bool _importPending: false
+
     Component.onCompleted: {
         _setupFileExtensions()
         _updateMobileShortPath()
@@ -88,6 +96,22 @@ Item {
     }
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
+
+    // Connect to the controller to receive import result notifications on Android.
+    Connections {
+        target: QGCFileDialogController
+        enabled: Qt.platform.os === "android" && _root._importPending
+
+        function onFileImported() {
+            _root._importPending = false
+            _root.fileImportedNotify()
+        }
+
+        function onImportFailed(errorMessage) {
+            _root._importPending = false
+            QGroundControl.showMessageDialog(_root, qsTr("Import"), errorMessage)
+        }
+    }
 
     FileDialog {
         id:             fullFileDialog
@@ -129,6 +153,14 @@ Item {
             id:         mobileFileOpenDialog
             title:      _root.title
             buttons:    Dialog.Cancel
+
+            // Auto-refresh the file list immediately after a successful import.
+            Connections {
+                target: _root
+                function onFileImportedNotify() {
+                    fileRepeater.model = QGCFileDialogController.getFiles(folder, _rgExtensions)
+                }
+            }
 
             Column {
                 id:         fileOpenColumn
@@ -179,6 +211,18 @@ Item {
                 QGCLabel {
                     text:       qsTr("No files")
                     visible:    fileRepeater.model.length === 0
+                }
+
+                QGCButton {
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
+                    text:           qsTr("Import")
+                    visible:        Qt.platform.os === "android"
+
+                    onClicked: {
+                        _root._importPending = true
+                        QGCFileDialogController.importFromNativePicker()
+                    }
                 }
             }
         }
