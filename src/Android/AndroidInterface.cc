@@ -22,8 +22,6 @@ QGC_LOGGING_CATEGORY(AndroidInterfaceLog, "Android.AndroidInterface")
 
 namespace AndroidInterface {
 
-// Callback registered by openFileImportDialog, invoked on the Qt main thread
-// when the Java side finishes copying the selected file.
 static std::function<void(const QString&)> s_importCallback;
 
 static void jniLogDebug(JNIEnv*, jobject, jstring message)
@@ -94,14 +92,10 @@ static void jniOnImportResult(JNIEnv* env, jobject, jstring filePathA)
     const QString filePath = QString::fromUtf8(filePathCStr);
     env->ReleaseStringUTFChars(filePathA, filePathCStr);
     (void)QJniEnvironment::checkAndClearExceptions(env);
-
-    // Move the callback out so it is invoked at most once even if this JNI
-    // function is called more than once for the same request.
     auto callback = std::move(s_importCallback);
     if (!callback) {
         return;
     }
-
     callback(filePath);
 }
 
