@@ -39,7 +39,6 @@ public:
 
     /// Opens Android's native file picker (ACTION_OPEN_DOCUMENT).
     /// On non-Android platforms this is a no-op.
-    /// This method must be called from the main (Qt) thread.
     Q_INVOKABLE void importFromNativePicker();
 
 signals:
