@@ -1,11 +1,10 @@
 #pragma once
 
 #include "TerrainQueryInterface.h"
-#include <QPointer>
+
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
-#include <QtCore/QPointer>
 #include <QtCore/QQueue>
 #include <QtPositioning/QGeoCoordinate>
 

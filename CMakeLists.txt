@@ -130,8 +130,6 @@ else()
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
 endif()
 
-set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
-
 # ----------------------------------------------------------------------------
 # CMake Policies
 # ----------------------------------------------------------------------------
