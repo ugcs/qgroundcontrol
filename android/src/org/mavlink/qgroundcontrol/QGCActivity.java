@@ -150,7 +150,7 @@ public class QGCActivity extends QtActivity {
             return null;
         }
 
-        if (!displayName.toLowerCase(java.util.Locale.ROOT).endsWith(".plan")) {
+        if (!isValidImportFileName(displayName)) {
             Log.w(TAG, "Rejected non-.plan file: " + displayName);
             return null;
         }
@@ -175,6 +175,17 @@ public class QGCActivity extends QtActivity {
             Log.e(TAG, "Failed to copy file to destination", e);
             return null;
         }
+    }
+
+    /**
+     * Returns true when is a valid mission-file name that may be imported.
+     * A valid name is non-null, non-empty, and ends with the .plan extension
+     */
+    public static boolean isValidImportFileName(final String displayName) {
+        if (displayName == null || displayName.isEmpty()) {
+            return false;
+        }
+        return displayName.toLowerCase(java.util.Locale.ROOT).endsWith(".plan");
     }
 
     public static String getSDCardPath() {
