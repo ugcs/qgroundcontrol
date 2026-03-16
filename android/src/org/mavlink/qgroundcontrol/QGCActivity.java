@@ -160,8 +160,13 @@ public class QGCActivity extends QtActivity {
             Log.e(TAG, "Destination directory does not exists: " + destDir);
             return null;
         }
-
-        final File destFile = new File(destDirectory, displayName);
+        File destFile;
+        try {
+            destFile = resolveDestFile(destDirectory, displayName);
+        }  catch (Exception e) {
+            Log.e(TAG, "failed to get filename for: " + displayName, e);
+            return null;
+        }
         try (InputStream is = getContentResolver().openInputStream(uri);
              FileOutputStream fos = new FileOutputStream(destFile)) {
             final byte[] buffer = new byte[8192];
@@ -175,6 +180,28 @@ public class QGCActivity extends QtActivity {
             Log.e(TAG, "Failed to copy file to destination", e);
             return null;
         }
+    }
+
+    /**
+     * Returns a File inside destDir whose path does not yet exist.
+     */
+    static File resolveDestFile(final File destDir, final String displayName) {
+        File candidate = new File(destDir, displayName);
+        if (!candidate.exists()) {
+            return candidate;
+        }
+
+        final int dotIndex = displayName.lastIndexOf('.');
+        final String base = (dotIndex >= 0) ? displayName.substring(0, dotIndex) : displayName;
+        final String ext  = (dotIndex >= 0) ? displayName.substring(dotIndex)    : "";
+
+        for (int i = 1; i <= Integer.MAX_VALUE; i++) {
+            candidate = new File(destDir, base + "_" + i + ext);
+            if (!candidate.exists()) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("resolveDestFile: no free filename found under " + destDir);
     }
 
     /**
