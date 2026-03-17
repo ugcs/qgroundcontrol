@@ -13696,25 +13696,6 @@ Click &apos;Ok&apos; to upload the Plan anyway.</source>
         <source>Save to existing file:</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <location filename="../src/QmlControls/QGCFileDialog.qml" line="107"/>
-        <location filename="../src/QmlControls/QGCFileDialog.qml" line="214"/>
-        <source>Import</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>QGCFileDialogController</name>
-    <message>
-        <location filename="../src/QmlControls/QGCFileDialogController.cc" line="119"/>
-        <source>Missions directory is not configured</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/QmlControls/QGCFileDialogController.cc" line="145"/>
-        <source>Failed to import file</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>QGCFileDownload</name>

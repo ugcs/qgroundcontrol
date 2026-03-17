@@ -13744,25 +13744,6 @@ sudo apt-get 移除调制解调器管理器</translation>
       <source>Save to existing file:</source>
       <translation>保存到已有的文件：</translation>
     </message>
-    <message>
-      <location filename="../src/QmlControls/QGCFileDialog.qml" line="107"/>
-      <location filename="../src/QmlControls/QGCFileDialog.qml" line="214"/>
-      <source>Import</source>
-      <translation type="unfinished">Import</translation>
-    </message>
-  </context>
-  <context>
-    <name>QGCFileDialogController</name>
-    <message>
-      <location filename="../src/QmlControls/QGCFileDialogController.cc" line="119"/>
-      <source>Missions directory is not configured</source>
-      <translation type="unfinished">Missions directory is not configured</translation>
-    </message>
-    <message>
-      <location filename="../src/QmlControls/QGCFileDialogController.cc" line="145"/>
-      <source>Failed to import file</source>
-      <translation type="unfinished">Failed to import file</translation>
-    </message>
   </context>
   <context>
     <name>QGCFileDownload</name>
