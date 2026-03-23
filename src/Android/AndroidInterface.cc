@@ -172,6 +172,10 @@ void openFileImportDialog(const QString& destPath, std::function<void(const QStr
     QJniEnvironment env;
     if (env.checkAndClearExceptions()) {
         qCWarning(AndroidInterfaceLog) << "Exception in openFileImportDialog";
+        if (s_importCallback) {
+            auto cb = std::move(s_importCallback);
+            cb(QString());
+        }
     }
 }
 
