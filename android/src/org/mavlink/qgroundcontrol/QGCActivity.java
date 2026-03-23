@@ -79,11 +79,13 @@ public class QGCActivity extends QtActivity {
                     final String importedPath = copyFileToDestination(uri, s_importDestPath);
                     onImportResult(importedPath != null ? importedPath : "");
                 } else {
-                    Log.w(TAG, "onActivityResult: null URI for file import");
+                    QGCLogger.w(TAG, "onActivityResult: null URI for file import");
                     onImportResult("");
                 }
+            } else {
+                QGCLogger.i(TAG, "onActivityResult: file import cancelled or no data returned");
+                onImportResult("");
             }
-            // User cancelled — do not call back so the QML side takes no action.
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -133,53 +135,67 @@ public class QGCActivity extends QtActivity {
             if (cursor != null && cursor.moveToFirst()) {
                 final int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                 if (nameIndex >= 0) {
-                    displayName = cursor.getString(nameIndex);
+                    displayName = cursor.getString(nameIndex);                    
+                    displayName = sanitizeFilename(displayName);
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to query display name for URI: " + uri, e);
+            QGCLogger.e(TAG, "Failed to query display name for URI: " + uri, e);
         }
 
         if (displayName.isEmpty()) {
-            Log.e(TAG, "copyFileToDestination: can't get exact file name");
+            QGCLogger.e(TAG, "copyFileToDestination: can't get exact file name");
             return null;
         }
 
         if (destDir == null || destDir.isEmpty()) {
-            Log.e(TAG, "copyFileToDestination: destination directory is empty");
+            QGCLogger.e(TAG, "copyFileToDestination: destination directory is empty");
             return null;
         }
 
         if (!isValidImportFileName(displayName)) {
-            Log.w(TAG, "Rejected non-.plan file: " + displayName);
+            QGCLogger.w(TAG, "Rejected non-.plan file: " + displayName);
             return null;
         }
 
         final File destDirectory = new File(destDir);
         if (!destDirectory.exists()) {
-            Log.e(TAG, "Destination directory does not exists: " + destDir);
+            QGCLogger.e(TAG, "Destination directory does not exist: " + destDir);
             return null;
         }
         File destFile;
         try {
             destFile = resolveDestFile(destDirectory, displayName);
         }  catch (Exception e) {
-            Log.e(TAG, "failed to get filename for: " + displayName, e);
+            QGCLogger.e(TAG, "failed to get filename for: " + displayName, e);
             return null;
         }
         try (InputStream is = getContentResolver().openInputStream(uri);
-             FileOutputStream fos = new FileOutputStream(destFile)) {
+            FileOutputStream fos = new FileOutputStream(destFile)) {
             final byte[] buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = is.read(buffer)) != -1) {
                 fos.write(buffer, 0, bytesRead);
             }
-            Log.i(TAG, "File imported successfully to: " + destFile.getAbsolutePath());
+            QGCLogger.i(TAG, "File imported successfully to: " + destFile.getAbsolutePath());
             return destFile.getAbsolutePath();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to copy file to destination", e);
+            QGCLogger.e(TAG, "Failed to copy file to destination", e);
             return null;
         }
+    }
+
+    /**
+     * sanitize file name.
+     */
+    static String sanitizeFilename(String displayName) {
+        String[] badCharacters = new String[] { "..", "/" };
+        String[] segments = displayName.split("/");
+        String fileName = segments[segments.length - 1];
+        for (String suspString : badCharacters) {
+            fileName = fileName.replace(suspString, "_");
+        }
+        return fileName;
     }
 
     /**
@@ -254,14 +270,16 @@ public class QGCActivity extends QtActivity {
      */
     public static void openFileImportDialog(final String destPath) {
         if (m_instance == null) {
-            Log.e(TAG, "Activity instance is null");
+            QGCLogger.e(TAG, "Activity instance is null");
             return;
         }
         s_importDestPath = (destPath != null) ? destPath : "";
-        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        m_instance.startActivityForResult(intent, IMPORT_FILE_REQUEST_CODE);
+        m_instance.runOnUiThread(() -> {
+            final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            m_instance.startActivityForResult(intent, IMPORT_FILE_REQUEST_CODE);
+        });
     }
 
     @Override
