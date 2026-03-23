@@ -122,7 +122,9 @@ void QGCFileDialogController::importFromNativePicker()
 
     QDir dir(missionPath);
     if (!dir.exists()) {
-        dir.mkpath(".");
+        qCWarning(QGCFileDialogControllerLog) << "Missions save path does not exist";
+        emit importFailed(tr("Missions save path does not exist"));
+        return;
     }
 
     QPointer<QGCFileDialogController> self = this;
